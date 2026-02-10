@@ -1,0 +1,11 @@
+# Git files
+.git
+.gitignore
+
+# Local database file (we don't want to upload our local test data)
+kopitiam.db
+kopitiam.db-journal
+
+# Documentation and local scripts
+*.md
+run.sh

@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin - Kopitiam Run</title>
+    <script src="https://unpkg.com/htmx.org@1.9.10"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gradient-to-br from-amber-50 to-orange-100 min-h-screen">
+    <div class="container mx-auto px-4 py-6 max-w-4xl">
+        <!-- Header with QR and Link -->
+        <div class="bg-white rounded-xl shadow-lg p-6 mb-6">
+            <h1 class="text-3xl font-bold text-amber-900 mb-4">🎯 Kopitiam Order</h1>
+            <p class="text-gray-600 mb-4">Share this link/QR to collect orders:</p>
+            
+            <div class="flex flex-col md:flex-row gap-4 items-start">
+                <!-- QR Code -->
+                <div class="bg-gray-100 p-4 rounded-lg">
+                    <img id="qr-code" src="" alt="QR Code" class="w-48 h-48">
+                </div>
+                
+                <!-- Link -->
+                <div class="flex-1">
+                    <div class="bg-amber-50 border-2 border-amber-200 rounded-lg p-4 mb-3">
+                        <div class="text-sm text-gray-600 mb-2">Order Link:</div>
+                        <div class="font-mono text-sm break-all">{{.OrderLink}}</div>
+                    </div>
+                    <button onclick="copyLink()" class="w-full bg-amber-600 hover:bg-amber-700 text-white font-bold py-3 px-6 rounded-lg">
+                        📋 Copy Link
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- View Tabs -->
+        <div class="bg-white rounded-xl shadow-lg mb-6">
+            <div class="flex border-b">
+                <button onclick="switchView('consolidated')" id="tab-consolidated" class="flex-1 py-4 px-4 font-bold border-b-4 border-amber-600 text-amber-900">
+                    📋 Consolidated (Stall)
+                </button>
+                <button onclick="switchView('distribution')" id="tab-distribution" class="flex-1 py-4 px-4 font-bold border-b-4 border-transparent text-gray-500 hover:text-gray-700">
+                    👥 Distribution
+                </button>
+            </div>
+
+            <!-- Orders Container -->
+            <div id="orders-container" class="p-6">
+                <!-- Will be populated by HTMX -->
+            </div>
+        </div>
+
+        <!-- Auto-refresh toggle -->
+        <div class="bg-white rounded-xl shadow-lg p-4 text-center">
+            <label class="inline-flex items-center cursor-pointer">
+                <input type="checkbox" id="auto-refresh" checked class="sr-only peer">
+                <div class="relative w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-amber-300 rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-amber-600"></div>
+                <span class="ms-3 text-sm font-medium text-gray-900">Auto-refresh (5s)</span>
+            </label>
+        </div>
+    </div>
+
+    <script>
+        let currentView = 'consolidated';
+        let refreshInterval;
+        const roomID = '{{.RoomID}}';
+
+        // Save the last visited room ID to allow resuming the session
+        localStorage.setItem('kopitiam_last_room', roomID);
+
+        // Load QR code
+        fetch(`/qr/${roomID}`)
+            .then(r => r.text())
+            .then(data => {
+                document.getElementById('qr-code').src = data;
+            });
+
+        function copyLink() {
+            const link = '{{.OrderLink}}';
+            navigator.clipboard.writeText(link).then(() => {
+                alert('✅ Link copied to clipboard!');
+            });
+        }
+
+        function switchView(view) {
+            currentView = view;
+            
+            // Update tabs
+            if (view === 'consolidated') {
+                document.getElementById('tab-consolidated').classList.add('border-amber-600', 'text-amber-900');
+                document.getElementById('tab-consolidated').classList.remove('border-transparent', 'text-gray-500');
+                document.getElementById('tab-distribution').classList.remove('border-amber-600', 'text-amber-900');
+                document.getElementById('tab-distribution').classList.add('border-transparent', 'text-gray-500');
+            } else {
+                document.getElementById('tab-distribution').classList.add('border-amber-600', 'text-amber-900');
+                document.getElementById('tab-distribution').classList.remove('border-transparent', 'text-gray-500');
+                document.getElementById('tab-consolidated').classList.remove('border-amber-600', 'text-amber-900');
+                document.getElementById('tab-consolidated').classList.add('border-transparent', 'text-gray-500');
+            }
+            
+            loadOrders();
+        }
+
+        function loadOrders() {
+            fetch(`/room/${roomID}/orders?view=${currentView}`)
+                .then(r => r.text())
+                .then(html => {
+                    document.getElementById('orders-container').innerHTML = html;
+                });
+        }
+
+        // Auto-refresh
+        function startAutoRefresh() {
+            refreshInterval = setInterval(() => {
+                if (document.getElementById('auto-refresh').checked) {
+                    loadOrders();
+                }
+            }, 5000);
+        }
+
+        // Initial load
+        loadOrders();
+        startAutoRefresh();
+
+        document.getElementById('auto-refresh').addEventListener('change', function() {
+            if (this.checked) {
+                startAutoRefresh();
+            } else {
+                clearInterval(refreshInterval);
+            }
+        });
+    </script>
+</body>
+</html>

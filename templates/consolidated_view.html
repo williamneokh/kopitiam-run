@@ -1,0 +1,32 @@
+{{if .}}
+    <div class="space-y-4">
+        <div class="text-sm text-gray-600 mb-4">
+            🏪 <strong>Stall-Friendly View</strong> - Show this to kopitiam uncle
+        </div>
+        {{range .}}
+        <div class="bg-gradient-to-r from-amber-100 to-orange-100 border-4 border-amber-600 rounded-xl p-6 shadow-lg">
+            <div class="flex items-center justify-between">
+                <div class="flex-1">
+                    <div class="text-5xl font-black text-amber-900 mb-2">
+                        {{.Count}}x
+                    </div>
+                    <div class="text-3xl font-bold text-gray-800">
+                        {{.Name}}
+                    </div>
+                </div>
+                <div class="text-amber-600">
+                    <svg class="w-16 h-16" fill="currentColor" viewBox="0 0 20 20">
+                        <path d="M2 6a2 2 0 012-2h12a2 2 0 012 2v2a2 2 0 01-2 2H4a2 2 0 01-2-2V6zM14 10a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2a2 2 0 012-2h8z"/>
+                    </svg>
+                </div>
+            </div>
+        </div>
+        {{end}}
+    </div>
+{{else}}
+    <div class="text-center py-16">
+        <div class="text-6xl mb-4">☕</div>
+        <p class="text-xl text-gray-600">No orders yet</p>
+        <p class="text-gray-500 mt-2">Orders will appear here when people submit them</p>
+    </div>
+{{end}}

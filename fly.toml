@@ -3,7 +3,7 @@
 # See https://fly.io/docs/reference/configuration/ for more information.
 #
 
-app = "kopitiam-run-app" # Replace with the app name you chose in `fly launch`
+app = "my-kopitiam-run" # Make sure this matches your app name on Fly.io
 primary_region = "sin"
 
 [build]

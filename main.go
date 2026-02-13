@@ -6,22 +6,23 @@ import (
 	"encoding/json"
 	"fmt"
 	"html/template"
+	"io/fs"
 	"log"
 	"net/http"
 	"sort"
 	_ "strings"
 	"time"
 
+	"github.com/glebarez/sqlite" // Pure go driver
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/google/uuid"
 	qrcode "github.com/skip2/go-qrcode"
-	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
 )
 
-//go:embed templates/*
-var templatesFS embed.FS
+//go:embed templates/* static/*
+var embeddedFS embed.FS
 
 var (
 	db        *gorm.DB
@@ -82,13 +83,21 @@ func main() {
 	log.Println("✓ Database migrated")
 
 	// Parse templates
-	templates = template.Must(template.ParseFS(templatesFS, "templates/*.html"))
+	templatesFS, _ := fs.Sub(embeddedFS, "templates")
+	templates = template.Must(template.ParseFS(templatesFS, "*.html", "*.template"))
 	log.Println("✓ Templates loaded")
+
+	// Start the background cleanup job
+	go startCleanupJob()
 
 	// Setup router
 	r := chi.NewRouter()
 	r.Use(middleware.Logger)
 	r.Use(middleware.Recoverer)
+
+	// Serve static files from the embedded filesystem
+	staticFS, _ := fs.Sub(embeddedFS, "static")
+	r.Handle("/static/*", http.StripPrefix("/static/", http.FileServer(http.FS(staticFS))))
 
 	// Routes
 	r.Get("/", handleLanding)
@@ -100,6 +109,8 @@ func main() {
 	r.Get("/room/{roomID}/orders", handleGetOrders)
 	r.Post("/room/{roomID}/orders/{orderID}/toggle", handleToggleDelivered)
 	r.Get("/qr/{roomID}", handleQRCode)
+	r.Get("/health", handleHealthCheck)
+	r.Get("/manifest.json", handleManifest)
 
 	log.Println("🚀 Server starting on http://localhost:8080")
 	log.Println("📱 Open http://localhost:8080 in your browser")
@@ -107,6 +118,57 @@ func main() {
 	if err := http.ListenAndServe(":8080", r); err != nil {
 		log.Fatal("Server failed to start:", err)
 	}
+}
+
+func handleHealthCheck(w http.ResponseWriter, r *http.Request) {
+	// A simple health check that just returns 200 OK.
+	// This gives Fly.io a lightweight endpoint to confirm the app is running.
+	w.WriteHeader(http.StatusOK)
+	w.Write([]byte("OK"))
+}
+
+func startCleanupJob() {
+	log.Println("🧹 Starting background cleanup job...")
+	// Run the cleanup job immediately on start, and then every 7 days.
+	ticker := time.NewTicker(7 * 24 * time.Hour)
+	defer ticker.Stop()
+
+	// Perform an initial cleanup on startup
+	cleanupOldRooms()
+
+	for range ticker.C {
+		cleanupOldRooms()
+	}
+}
+
+func cleanupOldRooms() {
+	log.Println("🧹 Running weekly cleanup of old rooms...")
+	const retentionPeriod = 7 * 24 * time.Hour // Keep data for 7 days
+	cutoff := time.Now().Add(-retentionPeriod)
+
+	var oldRoomIDs []string
+	// Find rooms older than the retention period
+	if err := db.Model(&Room{}).Where("created_at < ?", cutoff).Pluck("id", &oldRoomIDs).Error; err != nil {
+		log.Printf("❌ Error finding old rooms for cleanup: %v", err)
+		return
+	}
+
+	if len(oldRoomIDs) == 0 {
+		log.Println("🧹 No old rooms to clean up.")
+		return
+	}
+
+	log.Printf("🧹 Found %d old rooms to delete. Deleting associated orders and rooms...", len(oldRoomIDs))
+	db.Where("room_id IN ?", oldRoomIDs).Delete(&Order{})
+	db.Where("id IN ?", oldRoomIDs).Delete(&Room{})
+
+	log.Println("🧹 Running VACUUM to reclaim disk space...")
+	db.Exec("VACUUM")
+}
+
+func handleManifest(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/manifest+json")
+	templates.ExecuteTemplate(w, "manifest.json.template", nil)
 }
 
 func handleLanding(w http.ResponseWriter, r *http.Request) {

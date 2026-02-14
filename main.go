@@ -9,6 +9,7 @@ import (
 	"io/fs"
 	"log"
 	"net/http"
+	"os"
 	"sort"
 	_ "strings"
 	"time"
@@ -25,8 +26,10 @@ import (
 var embeddedFS embed.FS
 
 var (
-	db        *gorm.DB
-	templates *template.Template
+	db           *gorm.DB
+	templates    *template.Template
+	redirectMode bool
+	redirectURL  string
 )
 
 // Models
@@ -68,9 +71,18 @@ type UserDrink struct {
 func main() {
 	// Initialize database
 	var err error
+
+	// Determine database path. Use environment variable for production,
+	// default to a local file for development.
+	dbPath := os.Getenv("DATABASE_PATH")
+	if dbPath == "" {
+		dbPath = "kopitiam.db" // Default for local development
+	}
+	log.Printf("✓ Using database at: %s", dbPath)
+
 	// On a deployment server, we store the database in a persistent volume,
 	// which we will mount at /data.
-	db, err = gorm.Open(sqlite.Open("/data/kopitiam.db"), &gorm.Config{})
+	db, err = gorm.Open(sqlite.Open(dbPath), &gorm.Config{})
 	if err != nil {
 		log.Fatal("Failed to connect to database:", err)
 	}
@@ -87,6 +99,16 @@ func main() {
 	templates = template.Must(template.ParseFS(templatesFS, "*.html", "*.template"))
 	log.Println("✓ Templates loaded")
 
+	// Check for redirect mode
+	redirectMode = os.Getenv("REDIRECT_MODE") == "true"
+	redirectURL = os.Getenv("REDIRECT_URL")
+	if redirectMode {
+		log.Println("🚨 REDIRECT MODE IS ENABLED")
+		if redirectURL != "" {
+			log.Printf("   Redirect URL: %s", redirectURL)
+		}
+	}
+
 	// Start the background cleanup job
 	go startCleanupJob()
 
@@ -99,18 +121,24 @@ func main() {
 	staticFS, _ := fs.Sub(embeddedFS, "static")
 	r.Handle("/static/*", http.StripPrefix("/static/", http.FileServer(http.FS(staticFS))))
 
-	// Routes
-	r.Get("/", handleLanding)
-	r.Get("/debug", handleDebug)
-	r.Post("/room/create", handleCreateRoom)
-	r.Get("/order/{roomID}", handleOrderPage)
-	r.Post("/order/{roomID}", handleSubmitOrder)
-	r.Get("/room/{roomID}/admin", handleAdminView)
-	r.Get("/room/{roomID}/orders", handleGetOrders)
-	r.Post("/room/{roomID}/orders/{orderID}/toggle", handleToggleDelivered)
-	r.Get("/qr/{roomID}", handleQRCode)
+	// Public routes not affected by redirect mode
 	r.Get("/health", handleHealthCheck)
 	r.Get("/manifest.json", handleManifest)
+
+	// All application routes are subject to redirect mode
+	r.Group(func(r chi.Router) {
+		r.Use(redirectMiddleware)
+
+		r.Get("/", handleLanding)
+		r.Get("/debug", handleDebug)
+		r.Post("/room/create", handleCreateRoom)
+		r.Get("/order/{roomID}", handleOrderPage)
+		r.Post("/order/{roomID}", handleSubmitOrder)
+		r.Get("/room/{roomID}/admin", handleAdminView)
+		r.Get("/room/{roomID}/orders", handleGetOrders)
+		r.Post("/room/{roomID}/orders/{orderID}/toggle", handleToggleDelivered)
+		r.Get("/qr/{roomID}", handleQRCode)
+	})
 
 	log.Println("🚀 Server starting on http://localhost:8080")
 	log.Println("📱 Open http://localhost:8080 in your browser")
@@ -118,6 +146,18 @@ func main() {
 	if err := http.ListenAndServe(":8080", r); err != nil {
 		log.Fatal("Server failed to start:", err)
 	}
+}
+
+func redirectMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if redirectMode {
+			w.Header().Set("Content-Type", "text/html; charset=utf-8")
+			w.WriteHeader(http.StatusServiceUnavailable)
+			templates.ExecuteTemplate(w, "moved.html", map[string]string{"RedirectURL": redirectURL})
+			return
+		}
+		next.ServeHTTP(w, r)
+	})
 }
 
 func handleHealthCheck(w http.ResponseWriter, r *http.Request) {

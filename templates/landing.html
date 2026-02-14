@@ -4,96 +4,26 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>☕</text></svg>">
-    <title>Kopitiam Run has moved!</title>
+    <title>Kopitiam Run</title>
+    <script src="https://unpkg.com/htmx.org@1.9.10"></script>
     <script src="https://cdn.tailwindcss.com"></script>
 </head>
-<body class="bg-gradient-to-br from-amber-50 to-orange-100 min-h-screen">
-    <div class="container mx-auto px-4 py-8">
-        <div class="max-w-md mx-auto bg-white rounded-2xl shadow-2xl p-8 mt-20 text-center">
-            <!-- Header -->
-            <div class="text-center mb-8">
-                <div class="text-6xl mb-4">➡️</div>
-                <h1 class="text-4xl font-bold text-amber-900 mb-2">We've Moved!</h1>
-                <p class="text-gray-600">Kopitiam Run has a new home.</p>
-            </div>
-
-            <!-- New URL -->
-            <div class="mb-6">
-                <p class="text-gray-700 mb-2">Please update your bookmarks and visit us at:</p>
-                <a href="https://kopitiam-run.neo-lab.cc" class="block bg-amber-100 border-2 border-amber-200 rounded-lg p-4 text-amber-900 font-mono text-lg break-all hover:bg-amber-200 transition-colors">
-                    kopitiam-run.neo-lab.cc
-                </a>
-            </div>
-
-            <!-- Main Action Button -->
-            <a href="https://kopitiam-run.neo-lab.cc" 
-                class="w-full block bg-amber-600 hover:bg-amber-700 text-white font-bold py-4 px-6 rounded-xl text-xl shadow-lg transform transition hover:scale-105 mb-4">
-                🚀 Go to New Site
-            </a>
-
-            <!-- Add to Home Screen Button -->
-            <button onclick="showInstructions()" class="w-full bg-gray-200 hover:bg-gray-300 text-gray-800 font-bold py-3 px-6 rounded-xl text-lg">
-                📱 Add New Site to Home Screen
+<body class="bg-gradient-to-br from-amber-50 to-orange-100 min-h-screen flex items-center justify-center">
+    <div class="text-center max-w-lg mx-auto p-8">
+        <div class="bg-white rounded-2xl shadow-2xl p-10">
+            <h1 class="text-8xl mb-4">☕</h1>
+            <h2 class="text-4xl font-bold text-amber-900 mb-2">Kopitiam Run</h2>
+            <p class="text-gray-600 mb-8">Organize your team's coffee orders easily.</p>
+            <button 
+                hx-post="/room/create" 
+                hx-swap="none"
+                class="w-full bg-amber-600 hover:bg-amber-700 text-white font-bold py-4 px-6 rounded-xl text-xl shadow-lg transform transition hover:scale-105">
+                🚀 Start a Kopitiam Run
             </button>
-
-            <!-- Instructions (hidden by default) -->
-            <div id="instructions" class="hidden mt-6 text-left text-sm bg-gray-50 p-4 rounded-lg border">
-                <h3 class="font-bold text-base mb-3 text-center">How to add to your Home Screen</h3>
-                
-                <div id="ios-instructions" class="hidden space-y-2">
-                    <p class="font-semibold">For iPhone/iPad (Safari):</p>
-                    <ol class="list-decimal list-inside space-y-1">
-                        <li>First, <a href="https://kopitiam-run.neo-lab.cc" class="text-amber-600 underline font-medium">go to the new site</a>.</li>
-                        <li>Tap the 'Share' button (<svg class="inline-block w-4 h-4 align-text-bottom" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 12v8a2 2 0 002 2h12a2 2 0 002-2v-8m-4-6l-4-4-4 4m4-4v12"></path></svg>).</li>
-                        <li>Scroll down and tap 'Add to Home Screen'.</li>
-                    </ol>
-                </div>
-
-                <div id="android-instructions" class="hidden space-y-2 mt-3">
-                     <p class="font-semibold">For Android (Chrome):</p>
-                    <ol class="list-decimal list-inside space-y-1">
-                        <li>First, <a href="https://kopitiam-run.neo-lab.cc" class="text-amber-600 underline font-medium">go to the new site</a>.</li>
-                        <li>Tap the 'More' button (three dots <svg class="inline-block w-4 h-4 align-text-bottom" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path d="M10 6a2 2 0 110-4 2 2 0 010 4zM10 12a2 2 0 110-4 2 2 0 010 4zM10 18a2 2 0 110-4 2 2 0 010 4z"></path></svg>).</li>
-                        <li>Tap 'Install app' or 'Add to Home screen'.</li>
-                    </ol>
-                </div>
-                
-                <div id="other-instructions" class="hidden space-y-2 mt-3">
-                     <p class="font-semibold">For other devices/browsers:</p>
-                     <p>Look for a "Bookmark" or "Add to Home Screen" option in your browser's menu.</p>
-                </div>
+            <div class="mt-6 text-sm text-gray-500">
+                <p>Click the button to create a new order room and get a shareable link.</p>
             </div>
         </div>
     </div>
-    
-    <script>
-        function showInstructions() {
-            const instructionsDiv = document.getElementById('instructions');
-            const isHidden = instructionsDiv.classList.contains('hidden');
-
-            if (isHidden) {
-                const ua = navigator.userAgent;
-                const isIOS = /iPad|iPhone|iPod/.test(ua) && !window.MSStream;
-                const isAndroid = /Android/.test(ua);
-
-                document.getElementById('ios-instructions').classList.add('hidden');
-                document.getElementById('android-instructions').classList.add('hidden');
-                document.getElementById('other-instructions').classList.add('hidden');
-
-                if (isIOS) {
-                    document.getElementById('ios-instructions').classList.remove('hidden');
-                } else if (isAndroid) {
-                    document.getElementById('android-instructions').classList.remove('hidden');
-                } else {
-                    // Show both as a fallback if detection fails or it's a desktop
-                    document.getElementById('ios-instructions').classList.remove('hidden');
-                    document.getElementById('android-instructions').classList.remove('hidden');
-                    document.getElementById('other-instructions').classList.remove('hidden');
-                }
-            }
-            
-            instructionsDiv.classList.toggle('hidden');
-        }
-    </script>
 </body>
 </html>

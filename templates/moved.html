@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>➡️</text></svg>">
+    <title>Kopitiam Run has moved!</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gradient-to-br from-amber-50 to-orange-100 min-h-screen">
+    <div class="container mx-auto px-4 py-8">
+        <div class="max-w-md mx-auto bg-white rounded-2xl shadow-2xl p-8 mt-20 text-center">
+            <!-- Header -->
+            <div class="text-center mb-8">
+                <div class="text-6xl mb-4">➡️</div>
+                <h1 class="text-4xl font-bold text-amber-900 mb-2">We've Moved!</h1>
+                <p class="text-gray-600">Kopitiam Run has a new home.</p>
+            </div>
+
+            {{if .RedirectURL}}
+            <!-- New URL -->
+            <div class="mb-6">
+                <p class="text-gray-700 mb-2">Please update your bookmarks and visit us at:</p>
+                <a href="{{.RedirectURL}}" class="block bg-amber-100 border-2 border-amber-200 rounded-lg p-4 text-amber-900 font-mono text-lg break-all hover:bg-amber-200 transition-colors">
+                    {{.RedirectURL}}
+                </a>
+            </div>
+
+            <!-- Main Action Button -->
+            <a href="{{.RedirectURL}}" class="w-full block bg-amber-600 hover:bg-amber-700 text-white font-bold py-4 px-6 rounded-xl text-xl shadow-lg transform transition hover:scale-105">
+                🚀 Go to New Site
+            </a>
+            {{end}}
+        </div>
+    </div>
+</body>
+</html>
